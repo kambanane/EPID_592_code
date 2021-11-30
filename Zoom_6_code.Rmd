@@ -17,7 +17,7 @@ Using the data set for substance abuse centers, Michigan hospitals, Michigan roa
 
 2. Find the distance of each substance abuse center to the nearest hospital and add this variable to the data frame of substance abuse centers. Produce a histogram of the distance of each substance abuse center to the nearest hospital. Create a map of substance abuse centers where the size of the point represents the distance to the nearest hospital. 
 
-3. Create a buffer around each substance abuse center of 25 miles. Count up the number of hospitals within each buffer. Create a map of buffers where the color of the buffers represents the number of hospitals within each buffer. Do the same for a buffer of 75 miles.
+3. Create a buffer around each substance abuse center of 15 miles. Count up the number of hospitals within each buffer. Create a map of buffers where the color of the buffers represents the number of hospitals within each buffer. Do the same for a buffer of 5 miles.
 
 Make sure to include titles and legends in your maps. Submit your work in PDF format also including your code in a separate R script.
 
