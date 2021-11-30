@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <origin/>
+                <pubdate>20190401</pubdate>
+                <title>Health Care</title>
+                <onlink>https://utility.arcgis.com/usrsvcs/servers/e1760c38b1ba425f85aa3d9251fabcf4/rest/services/CSS/CSS_LARA/MapServer/6</onlink>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>This data set includes state licensing information maintained by the Michigan Department of Licensing and Regulatory Affairs (LARA).  This data set is for licensed health care facilities and agencies.  Health care facilities and agencies include freestanding surgical outpatient facilities, homes for the aged, hospitals, hospice agencies, hospice residences, nursing homes, and psychiatric hospitals/units.  Data set includes the following attributes: license number, facility type code, facility name, street address, city, state, ZIP code, and county.  For homes for the aged, hospitals, hospice residences, nursing homes, and psychiatric hospitals/units, total capacity is maintained.  For homes psychiatric hospitals/units, serving adults and children is maintained.</abstract>
+            <purpose>This data set was created to populate a mapping system maintained by the Michigan Department of Technology, Management and Budget (DTMB).  The map displays for public consumption where state licensed providers are located and provides basic licensing information on these licensed providers.</purpose>
+        </descript>
+        <status>
+            <progress>Complete</progress>
+            <update>Quarterly</update>
+        </status>
+        <keywords>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>michigan</themekey>
+                <themekey>lara</themekey>
+                <themekey>licensing</themekey>
+                <themekey>hospital</themekey>
+                <themekey>psychiatric hospital</themekey>
+                <themekey>freestanding surgical outpatient facility</themekey>
+                <themekey>homes for the aged</themekey>
+                <themekey>hospice residence</themekey>
+                <themekey>long term care</themekey>
+                <themekey>nursing home</themekey>
+                <themekey>health</themekey>
+                <themekey>licensing regulatory affairs</themekey>
+                <themekey>public health</themekey>
+            </theme>
+        </keywords>
+        <accconst>None</accconst>
+        <useconst>None</useconst>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>State of Michigan LARA</cntorg>
+                    <cntper>Larry Horvath</cntper>
+                </cntorgp>
+                <cntaddr>
+                    <addrtype>physical</addrtype>
+                    <address>611 W. Ottawa St</address>
+                    <city>Lansing</city>
+                    <state>MI</state>
+                    <country>US</country>
+                </cntaddr>
+                <cntvoice>517-643-5165</cntvoice>
+                <cntemail>horvathl@michigan.gov</cntemail>
+            </cntinfo>
+        </ptcontac>
+        <datacred>Michigan Dept of Licensing and Regulatory Affairs.
+Center for Shared Solutions, Department of Technology, Management, and Budget, State of Michigan</datacred>
+        <secinfo/>
+        <native>This data set was created using the licensing data bases maintained by LARA and sent to DTMB for geocoding and upload to the mapping software.</native>
+    </idinfo>
+    <metainfo>
+        <metd>20190424</metd>
+        <metc>
+            <cntinfo>
+                <!--no contact person or organization name available-->
+            </cntinfo>
+        </metc>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>

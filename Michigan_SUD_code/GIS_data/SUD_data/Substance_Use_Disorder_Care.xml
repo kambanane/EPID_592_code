@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <origin/>
+                <pubdate>20190401</pubdate>
+                <title>Substance Use Disorder Care</title>
+                <onlink>https://utility.arcgis.com/usrsvcs/servers/bdf9af41158f4ce489582e35e8f67971/rest/services/CSS/CSS_LARA/MapServer/7</onlink>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>This data set includes state licensing information maintained by the Michigan Department of Licensing and Regulatory Affairs (LARA).  This data set is for licensed substance use disorder (SUD) programs.  Data set includes the following attributes: license number, facility type code, facility name, street address, city, state, ZIP code, county, and specialty service categories.  Specialty service categories include residential, residential detoxification, medication assisted treatment (MAT) - Methadone, outpatient, prevention, screening and assessment, and inpatient.</abstract>
+            <purpose>This data set was created to populate a mapping system maintained by the Michigan Department of Technology, Management and Budget (DTMB).  The map displays for public consumption where state licensed providers are located and provides basic licensing information on these licensed providers.</purpose>
+        </descript>
+        <status>
+            <progress>Complete</progress>
+            <update>Quarterly</update>
+        </status>
+        <spdom>
+            <bounding>
+                <westbc>-90.55309999999848</westbc>
+                <eastbc>-82.0688999999986</eastbc>
+                <northbc>48.224544320994475</northbc>
+                <southbc>41.64115694929663</southbc>
+            </bounding>
+        </spdom>
+        <keywords>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>michigan</themekey>
+                <themekey>lara</themekey>
+                <themekey>licensing</themekey>
+                <themekey>screening assessment</themekey>
+                <themekey>outpatient</themekey>
+                <themekey>residential</themekey>
+                <themekey>detoxification</themekey>
+                <themekey>mat methadone</themekey>
+                <themekey>inpatient</themekey>
+                <themekey>licensing regulatory affairs</themekey>
+                <themekey>health</themekey>
+                <themekey>public health</themekey>
+            </theme>
+        </keywords>
+        <accconst>None</accconst>
+        <useconst>None</useconst>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>State of Michigan LARA</cntorg>
+                    <cntper>Larry Horvath</cntper>
+                </cntorgp>
+            </cntinfo>
+        </ptcontac>
+        <datacred>Michigan Dept of Licensing and Regulatory Affairs.
+Center for Shared Solutions, Department of Technology, Management, and Budget, State of Michigan</datacred>
+        <native>This data set was created using the licensing data bases maintained by LARA and sent to DTMB for geocoding and upload to the mapping software.</native>
+    </idinfo>
+    <metainfo>
+        <metd>20190424</metd>
+        <metc>
+            <cntinfo>
+                <!--no contact person or organization name available-->
+            </cntinfo>
+        </metc>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>

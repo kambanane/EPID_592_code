@@ -1,0 +1,222 @@
+---
+title: "SUD code demo"
+author: "Peter S. Larson"
+date: "2021/11/30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## US Census data
+
+The US Census and its associated data collection efforts are an excellent resource for background data for your public health studies. 
+
+In this code set I will be showing you how to access US Census data through R.
+
+First, you need to get an api key from the US census site.
+
+Go to this site: http://api.census.gov/data/key_signup.html
+
+Sign up for the key. Wait for it to arrive. Don't forget to activate it!
+
+
+```{r census}
+## load necessary packages
+library(tidycensus)
+library(tidyverse)
+library(tmap)
+library(dplyr)
+
+## put census api key
+### individual key can be obtained from http://api.census.gov/data/key_signup.html
+
+## Here is where you put you newly obtained api key.
+census_api_key("011780b73f165bdca5122d9829bd7749ef2203e6", install=TRUE, overwrite = TRUE)
+
+## Make a basic graphic to show the syntax 
+age10 <- get_decennial(geography = "state", 
+                       variables = "P013001", 
+                       year = 2010)
+
+head(age10)
+
+## Let's make a figure of ages by state
+age10 %>%
+  ggplot(aes(x = value, y = reorder(NAME, value))) + 
+  geom_point() +
+  ggtitle("Age by state") +
+  xlab("Age") +
+  ylab("State")
+
+```
+
+Now let's find some variables we are interested in.
+
+
+```{r how_to_find_variables}
+
+
+## We can find variables of interest by looking in the survey product of interest and then specifying a year (or whatever else is necessary)
+
+## get variable from ACS in year 2019
+m19 <- load_variables(2019, "acs5", cache = TRUE)
+
+## find appropriate variable from above (median income)
+#B06011_001
+
+## median household income data from the 2015-2019 ACS for tract in Michigan
+mi_medincome <-
+  get_acs(
+    geography = "tract",
+    variables = c(medincome = "B06011_001"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(median_income = estimate) %>%
+  dplyr::select(GEOID, median_income)
+
+## find appropriate variable from above (income in the past 12 months below poverty level)
+#B10059_002
+
+## income in the past 12 months below poverty level data from the 2015-2019 ACS for tract in Michigan
+mi_poverty <-
+  get_acs(
+    geography = "tract",
+    variables = c(poverty = "B10059_002"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(poverty = estimate) %>%
+  dplyr::select(GEOID, poverty)
+
+## find appropriate variable from above (mean age by sex)
+#B01002_001
+
+## income in the past 12 months below poverty level data from the 2015-2019 ACS for tract in Michigan
+mi_mean_age <-
+  get_acs(
+    geography = "tract",
+    variables = c(mean_age = "B01002_001"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(mean_age = estimate) %>%
+  dplyr::select(GEOID, mean_age)
+
+## get variable from Census in year 2020. We have to use the data choice pl because it is the only one that is avaiable for 2020.
+m20 <- load_variables(2020, "pl", cache = TRUE)
+
+## find appropriate variable from above (black or african american race)
+#P1_004N
+
+## black/african american race data from the decennial for tract in Michigan
+mi_black <-
+  get_decennial(
+    geography = "tract",
+    variables = c(blackrace = "P1_004N"),
+    state = "MI",
+    year = 2020
+  ) %>%
+  dplyr::rename(black_pop = value) %>%
+  dplyr::select(GEOID, black_pop)
+
+## Put all this in a single file
+final_data <- mi_black %>%
+  dplyr::left_join(mi_mean_age) %>%
+  dplyr::left_join(mi_poverty) %>%
+  dplyr::left_join(mi_medincome)
+
+```
+  
+Making maps with the census api is really, really easy. We just specify "geometry = TRUE" and it automatically gives us a spatial object (sf) to work with. 
+
+``` {r making_maps}
+### Thematic Map
+
+## Income
+mi_income <- get_acs(
+  geography = "tract",
+  variables = "B06011_001",
+  state = "MI",
+  geometry = TRUE
+)
+
+## It's an sf object so we can use dplyr code.
+mi_income <- mi_income %>%
+  dplyr::rename(median_income = estimate) %>%
+  dplyr::mutate(median_income = replace_na(median_income, 0))
+
+#We can now make a map
+tm_shape(mi_income) +
+  tm_polygons("median_income",
+              title = "Median Income ($)", lwd = 0.01, border.alpha = 0.1) +
+  tm_legend(title = "Median Income", title.position = c("right", "top")) +
+  tm_layout (bg.color = "skyblue")
+```
+
+Let's make a poverty map
+
+```{r poverty_map}
+
+## Poverty
+mi_poverty2 <- get_acs(
+  geography = "tract",
+  variables = "B10059_002",
+  state = "MI",
+  geometry = TRUE
+)
+mi_poverty2 <- mi_poverty2 %>%
+  dplyr::rename(poverty = estimate) %>%
+  dplyr::mutate(poverty = replace_na(poverty, 0))
+#Map
+tm_shape(mi_poverty2) + tm_polygons(
+  "poverty",
+  title = "Homes in Poverty (%)",
+  palette = "YlGnBu",
+  lwd = 0.2,
+  border.alpha = 0.5
+) + 
+  tm_legend(title = "Homes in Poverty", title.position = c("right", "top"))
+
+```
+
+Age map
+
+```{r age_map}
+
+
+## Mean Age
+mi_mean_age2 <- get_acs(
+  geography = "tract",
+  variables = "B01002_001",
+  state = "MI",
+  geometry = TRUE
+)
+mi_mean_age2 <- mi_mean_age2 %>%
+  dplyr::rename(age = estimate) %>%
+  dplyr::mutate(age = replace_na(age, 0))
+tm_shape(mi_mean_age2) + tm_polygons(
+  "age",
+  title = "Mean Age (years)",
+  palette = "YlGn",
+  lwd = 0.2,
+  border.alpha = 0.5
+) + tm_legend(title = "Mean Age", title.position = c("right", "top"))
+```
+
+
+```{r black_aa_map}
+
+## black/african american
+mi_black2<- get_decennial(geography = "tract",
+                          variables = "P1_004N",
+                          state = "MI",
+                          geometry = TRUE)
+mi_black2 <- mi_black2 %>%
+  dplyr::rename(black = estimate)%>% 
+  dplyr::mutate(black = replace_na(black, 0))
+tm_shape(mi_black2) + tm_polygons("black", title = "Black/African American Population (%)", palette = "PuBuGn", lwd = 0.2) + tm_legend(title ="Black/African American Population", title.position = c("right", "top"))
+
+```
