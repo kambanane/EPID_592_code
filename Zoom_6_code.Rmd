@@ -61,6 +61,13 @@ hospitals <- raster::shapefile("Michigan_SUD_code/GIS_data/health_care/Health_Ca
 hospitals <- st_as_sf(hospitals) %>%
   dplyr::filter(Facility_1 == "Hospital")
 
+# ### Dplyr ####
+# mtcars_new <- mtcars %>%
+#   dplyr::filter(mpg <20) %>%
+#   dplyr::select(mpg, cyl, wt) %>%
+#   dplyr::mutate(new_variable = mpg*2)
+
+
 ## Alternatively, you can use subset with a normal SpatialPointsDataFrame
 
 ## Make a map to see if this all makes sense.
@@ -89,14 +96,14 @@ tm_shape(michigan_counties) +
   )
 
 ```
-1, Find the number of substance abuse centers in each Michigan county. Add this variable to the data frame for Michigan counties. Create a map of number of substance abuse centers by county using tmap.
+
+1. Find the number of substance abuse centers in each Michigan county. Add this variable to the data frame for Michigan counties. Create a map of the number of substance abuse centers by county using tmap.
 
 ```{r SUD_centers_by_county}
 
 ## Count up number of SUD centers by county and add to the Michigan counties layer (sf method)
 michigan_counties$SUD_count <-
   lengths(st_intersects(michigan_counties, SUD_centers))
-
 
 ## Create a map of number of substance abuse centers by county using tmap.
 tm_shape(michigan_counties) +
@@ -119,7 +126,7 @@ library(GISTools)
 library(ggplot2)
 
 ## Get the distances from each of the SUD_centers to each of the hospitals
-distances <- st_distance(SUD_centers, hospitals)
+distances <- st_distance(SUD_centers, hospitals) * 1609.34
 
 ## Find the distance of each substance abuse center to the nearest hospital and add this variable to the data frame of substance abuse centers.
 SUD_centers$distance_to_hospital <- ft2miles(as.vector(apply(distances,1, min)))
@@ -129,7 +136,6 @@ ggplot(data=SUD_centers, aes(x=distance_to_hospital)) +
   geom_histogram(fill="#69b3a2", color="#e9ecef")+
   ggtitle("Distribution of distances to nearest hospital to each SUD center") +
   xlab("Distance to nearest hospital")
-
 
 #Create a map of substance abuse centers where the size of the point represents the distance to the nearest hospital.
 tm_shape(michigan_counties) +

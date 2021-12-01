@@ -1,5 +1,5 @@
 ---
-title: "SUD code demo"
+title: "US Census code demo"
 author: "Peter S. Larson"
 date: "2021/11/30"
 output: html_document
@@ -33,7 +33,7 @@ library(dplyr)
 ### individual key can be obtained from http://api.census.gov/data/key_signup.html
 
 ## Here is where you put you newly obtained api key.
-census_api_key("011780b73f165bdca5122d9829bd7749ef2203e6", install=TRUE, overwrite = TRUE)
+#census_api_key("011780b73f165bdca5122d9829bd7749ef2203e6", install=TRUE, overwrite = TRUE)
 
 ## Make a basic graphic to show the syntax 
 age10 <- get_decennial(geography = "state", 
