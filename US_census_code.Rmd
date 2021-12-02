@@ -105,7 +105,7 @@ mi_mean_age <-
   dplyr::rename(mean_age = estimate) %>%
   dplyr::select(GEOID, mean_age)
 
-## get variable from Census in year 2020. We have to use the data choice pl because it is the only one that is avaiable for 2020.
+## g et variable from Census in year 2020.We have to use the data choice pl because it is the only one that is avaiable for 2020.
 m20 <- load_variables(2020, "pl", cache = TRUE)
 
 ## find appropriate variable from above (black or african american race)
@@ -154,6 +154,27 @@ tm_shape(mi_income) +
               title = "Median Income ($)", lwd = 0.01, border.alpha = 0.1) +
   tm_legend(title = "Median Income", title.position = c("right", "top")) +
   tm_layout (bg.color = "skyblue")
+
+
+tm_shape(mi_income) +
+  tm_polygons(
+    "median_income",
+    title = "Median Income ($)",
+    lwd = 0.01,
+    border.alpha = 0.1
+  ) +
+  tm_shape(mi_income) +
+  tm_polygons(
+    "moe",
+    title = "Margin of error",
+    lwd = 0.01,
+    border.alpha = 0.1,
+    alpha = .2
+  ) 
+
+
+
+
 ```
 
 Let's make a poverty map

@@ -126,10 +126,11 @@ library(GISTools)
 library(ggplot2)
 
 ## Get the distances from each of the SUD_centers to each of the hospitals
-distances <- st_distance(SUD_centers, hospitals) * 1609.34
+distances <- st_distance(SUD_centers, hospitals) * 0.000621371
 
 ## Find the distance of each substance abuse center to the nearest hospital and add this variable to the data frame of substance abuse centers.
-SUD_centers$distance_to_hospital <- ft2miles(as.vector(apply(distances,1, min)))
+#SUD_centers$distance_to_hospital <- ft2miles(as.vector(apply(distances,1, min)))
+SUD_centers$distance_to_hospital <- (as.vector(apply(distances,1, min)))
 
 #Produce a histogram of the distance of each substance abuse center to the nearest hospital.
 ggplot(data=SUD_centers, aes(x=distance_to_hospital)) +
@@ -142,9 +143,10 @@ tm_shape(michigan_counties) +
   tm_polygons() +
   tm_shape(SUD_centers) +
   tm_bubbles("distance_to_hospital",
-             style = "quantile") +
+             style = "quantile",
+             title.size = "Distance to hospital (in miles)") +
   tm_layout(
-    main.title = "Number of SUD centers by county in Michigan",
+    main.title = "Distance to nearest hospital from SUD centers",
     bg.color = "grey90",
     fontface = "plain",
     fontfamily = "serif",
