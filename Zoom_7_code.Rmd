@@ -1,0 +1,383 @@
+---
+title: "Zoom_7_code_exercise"
+author: "Peter S. Larson"
+date: "2021/12/7"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GIS as a data analysis tool
+
+GIS is more than just making pretty pictures. It also allows us a powerful means of putting different datasets together for performing complex analyses of associations between variables within space. 
+
+In this exercise, we will be exploring how median income and race are associated with high blood pressure using an ecological analysis. 
+
+```{r read_in_data}
+
+### libraries
+library(sf)
+library(raster)
+library(maptools)
+library(dplyr)
+library(sp)
+library(readr)
+library(janitor)
+library(readxl)
+
+### Get a data set for Covid cases and deaths by county (source: https://www.michigan.gov/coronavirus/0,9753,7-406-98163_98173---,00.html)
+covid <- read_csv("Data/Cases_and_Deaths_by_County_2021-12-06_742808_7.csv") %>%
+  clean_names() 
+
+## Look at the first 6 lines
+head(covid)
+
+## Get a summary
+summary(covid)
+
+## Only interested in confirmed cases
+confirmed_covid  <- covid %>%
+  dplyr::filter(case_status == "Confirmed") %>% 
+  dplyr::select(-updated)
+
+## Now that we have this data we might be interested in whether cases and deaths are correlated
+library(ggplot2)
+
+# Basic scatter plot
+ggplot(confirmed_covid, aes(x = cases, y = deaths)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  xlab("Cases") + 
+  ylab("Deaths") + 
+  ggtitle("Covid in Michigan: cases and deaths by county") +
+  theme_bw()
+
+## We might also be interested in how cases and deaths are distributed
+ggplot(confirmed_covid, aes(x = cases)) + 
+  geom_histogram(color="black", fill="white")+
+  xlab("Cases") + 
+  ylab("Frequency") + 
+  ggtitle("Covid cases by county: Michigan") +
+  theme_bw()
+
+ggplot(confirmed_covid, aes(x = deaths)) + 
+  geom_histogram(color="black", fill="white")+
+  xlab("Cases") + 
+  ylab("Frequency") + 
+  ggtitle("Covid deaths by county: Michigan") +
+  theme_bw()
+
+```
+
+## Importing predictors
+
+The goal of this study is to see how county level median income and the distribution of racial groups are associated with covid cases and deaths. 
+
+To perform this analysis we will need to grab data from the US census as we did last week. 
+
+Let's get data for median income and percent black at the county level.
+
+```{r census, echo=FALSE}
+## load necessary packages
+library(tidycensus)
+library(tidyverse)
+library(tmap)
+library(dplyr)
+
+## put census api key
+### individual key can be obtained from http://api.census.gov/data/key_signup.html
+
+## Here is where you put you newly obtained api key.
+#census_api_key("011780b73f165bdca5122d9829bd7749ef2203e6", install=TRUE, overwrite = TRUE)
+
+## get variable from ACS in year 2019
+m19 <- load_variables(2019, "acs5", cache = TRUE)
+
+## find appropriate variable from above (median income)
+#B06011_001
+
+## median household income data from the 2015-2019 ACS for tract in Michigan
+mi_medincome <-
+  get_acs(
+    geography = "county",
+    variables = c(medincome = "B06011_001"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(median_income = estimate) %>%
+  dplyr::select(GEOID, median_income)
+
+## income in the past 12 months below poverty level data from the 2015-2019 ACS for tract in Michigan
+mi_poverty <-
+  get_acs(
+    geography = "county",
+    variables = c(poverty = "B10059_002"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(poverty = estimate) %>%
+  dplyr::select(GEOID, poverty)
+
+## income in the past 12 months below poverty level data from the 2015-2019 ACS for tract in Michigan
+mi_mean_age <-
+  get_acs(
+    geography = "county",
+    variables = c(mean_age = "B01002_001"),
+    state = "MI",
+    year = 2019
+  )  %>%
+  dplyr::rename(mean_age = estimate) %>%
+  dplyr::select(GEOID, mean_age)
+
+## g et variable from Census in year 2020.We have to use the data choice pl because it is the only one that is avaiable for 2020.
+m20 <- load_variables(2020, "pl", cache = TRUE)
+
+## find appropriate variable from above (black or african american race)
+#P1_004N
+
+## black/african american race data from the decennial for tract in Michigan
+mi_pop <-
+  get_decennial(
+    geography = "county",
+    variables = c(blackrace = "P1_001N"),
+    state = "MI",
+    year = 2020
+  ) %>%
+  dplyr::rename(pop = value) %>%
+  dplyr::select(GEOID, pop)
+
+## black/african american race data from the decennial for tract in Michigan
+mi_black <-
+  get_decennial(
+    geography = "county",
+    variables = c(blackrace = "P1_004N"),
+    state = "MI",
+    year = 2020
+  ) %>%
+  dplyr::rename(black_pop = value) %>%
+  dplyr::select(GEOID, black_pop)
+
+## Put all this in a single file
+final_data <- mi_pop %>% 
+  dplyr::left_join(mi_black) %>%
+  dplyr::left_join(mi_mean_age) %>%
+  dplyr::left_join(mi_poverty) %>%
+  dplyr::left_join(mi_medincome)
+
+rm(mi_pop, mi_mean_age, mi_black, mi_poverty, mi_medincome, m19, m20)
+
+```
+
+## Merging the data 
+
+Alright, so now we have some data. But how can we link the data together with our covid case data?
+
+Notice that we have county names for our covid data, and GEOIDs for our census data. What do do?
+
+Also notice that we don't have a geography here. Let's first get our county shapefile that we used for the SUD assignment. 
+
+```{r county_data_merge, echo=FALSE}
+
+## Get Michigan counties
+michigan_counties <-
+  raster::shapefile("Michigan_SUD_code/GIS_data/Counties/Counties_(v17a).shp")
+## Convert to sf (if you want to)
+michigan_counties <- st_as_sf(michigan_counties)
+
+## Let's look at the first six lines of the data. 
+head(michigan_counties)
+
+## We can see that there's a county name. That's going to be helpful for our covid data. We can also see that there's a FIPSCODE variable that looks a whole lot like the last three digits of the GEOID. So let's make a GEOID variable that uses the MI state code of 26 and the county FIPSCODE. 
+michigan_counties <- michigan_counties %>%
+  dplyr::mutate(GEOID = paste0("26", FIPSCODE))
+
+## Cool, that seemed to work. Now let's see if we can get our county name situation taken care of, too. Let's first see how many in our covid dataset match the names in the county data set. 
+intersect(confirmed_covid$county, michigan_counties$NAME)
+
+## We can see that we have 81 matches.. but there are 83 counties and the confirmed_covid dataset has 88 rows. Let's see what's going on. 
+
+## This function tells us which counties in the confirmed_covid set DO NOT have matches in the michigan_counties dataset.
+setdiff(confirmed_covid$county, michigan_counties$NAME)
+
+## We can see trouble already. Detroit City is not a part of Wayne County in the covid set. Plus we see that St Clair and St Joseph don't have matches. The first problem is easily solved. We will collapse Wayne with Detroit in the Covid set. The second will require us to look at the michigan_counties$NAME variable.
+
+michigan_counties$NAME
+## We can see that in michigan_counties, they include a period for St. Clair and St. Joseph. We just have to either take that . away in the county data set or add it to the confirmed_covid data set. Let's do the latter.
+
+confirmed_covid <- confirmed_covid %>%
+  dplyr::mutate(county =  recode(county, `Detroit City`= "Wayne")) %>% ## rename Detroit City to Wayne
+  group_by(county) %>% ## Groups things together, we do this because now we have two Wayne counties
+  summarise(cases=sum(cases), deaths=sum(deaths)) %>% ## add all of the instances of counties together. All except Wayne county will be their original values since there's only one of each. For Wayne, we will be adding up the two instances of Wayne County. This is called aggregation.
+  ungroup() %>% ## turn the grouping feature off. 
+  dplyr::mutate(county = recode(county, `St Clair` = "St. Clair", `St Joseph` = "St. Joseph")) ## fix the spelling of St Clair and St Joseph so they match the michigan_counties data frame.
+
+## Notice now we have 87 rather than 88 since we collapsed Detroit into Wayne. We have more than 83 because of the out of state, FCI, MDOC and unknown. We could drop them in this data set but will not worry about them for now. 
+
+## OK, now let's do some merging. There's several ways we can do this, but we'll do it the dplyr way.
+## Remember our TARGET data frame is going to be Michigan counties, since that's what we will make maps from.
+michigan_counties <- michigan_counties %>%
+  dplyr::rename(county=NAME) %>% ## First we'll change NAME to county so that we can merge it with our covid data set. Remember, they have to be the same variable name and type to merge.
+  left_join(confirmed_covid) %>% ## Merging on county name
+  left_join(final_data) %>% ## Merging on GEOID
+  clean_names() %>% # And I like consistent variable names so I'll use the clean_names on my final data set.
+  dplyr::mutate(cases_adj = 100000*(cases/pop), deaths_adj = 100000*(deaths/pop) ) ## and since we have population now, we might as well standardize them by county pop.
+
+## And voila, I have a new data set with all my variables that I'm going to use for my analysis.
+
+## Now, I'll create a summary of the data. The compareGroups package is really nice and there's also a nice option in the psych package.
+summary(michigan_counties)
+
+library(compareGroups)
+table_1 <-
+  compareGroups(
+    ~ cases + deaths + cases_adj + deaths_adj + pop +  black_pop + mean_age + poverty + median_income,
+    data = as.data.frame(michigan_counties)
+  )
+createTable(table_1)
+
+library(psych)
+describe(as.data.frame(michigan_counties) %>% dplyr::select(cases, deaths, cases_adj, deaths_adj, pop, black_pop, mean_age, poverty, median_income))
+
+```
+
+## Make some maps 
+
+Now that I have a data set that I'm going to work with, it is time to make some maps. I'm just going to make some basic maps here. I will expect that you will make prettier maps that I do. 
+
+```{r county_data_merge, echo=FALSE}
+
+library(tmap)
+
+## Let's make a map of covid cases and deaths 
+cases <- tm_shape(michigan_counties) +
+  tm_polygons("cases", title = "Case counts", style = "quantile") +
+  tm_layout(main.title = "Covid-19 cases")
+
+deaths <- tm_shape(michigan_counties) +
+  tm_polygons("deaths", title = "Mortality counts", style = "quantile") +
+  tm_layout(main.title = "Covid-19 mortality")
+
+cases_adj <- tm_shape(michigan_counties) +
+  tm_polygons("cases_adj", title = "Standardized counts", style = "quantile") +
+  tm_layout(main.title = "Covid-19 cases (per 100,000)")
+
+deaths_adj <- tm_shape(michigan_counties) +
+  tm_polygons("deaths_adj", title = "Standardized mortality", style = "quantile") +
+  tm_layout(main.title = "Covid-19 deaths (per 100,000)")
+
+current.mode <- tmap_mode("plot")
+tmap_arrange(cases, deaths, cases_adj, deaths_adj, widths = c(.5, .5))
+tmap_mode(current.mode)
+
+## Let's make maps of all of our predictors
+
+## Let's make a map of covid cases and deaths 
+pop <- tm_shape(michigan_counties) +
+  tm_polygons("pop", title = "Population", style = "quantile") +
+  tm_layout(main.title = "Population")
+
+black_pop <- tm_shape(michigan_counties) +
+  tm_polygons("black_pop", title = "Black population", style = "quantile") +
+  tm_layout(main.title = "Black population")
+
+mean_age <- tm_shape(michigan_counties) +
+  tm_polygons("mean_age" , title = "Mean age", style = "quantile") +
+  tm_layout(main.title = "Mean age")
+
+poverty <- tm_shape(michigan_counties) +
+  tm_polygons("poverty", title = "Number of homes in poverty", style = "quantile") +
+  tm_layout(main.title = "Poverty")
+
+median_income <- tm_shape(michigan_counties) +
+  tm_polygons("median_income", title = "Median income", style = "quantile") +
+  tm_layout(main.title = "Median income")
+
+current.mode <- tmap_mode("plot")
+tmap_arrange(pop, black_pop,poverty, median_income,mean_age, widths = c(.5, .5))
+tmap_mode(current.mode)
+
+
+```
+
+## Interpreting the maps
+
+How you interpret the maps is up to you, but you should include some meaningful text describing what you see and how it is relevant to your study. 
+
+Do you see any relevant patterns here that tell you something about how these variables might be related to covid 19 cases or deaths? Or to each other? Or not?
+
+Also, I have used "quantile" breaks here for convenience. You might find that other types of classification are better suited to your data. Try playing with the different types of breaks and with the color schemes to get something that tells the story you want to tell. 
+
+## Analyzing the data 
+
+Now that you have a data set, you can do some statistical analysese. Remember, GIS isn't just about making maps. It is also about bringing different data sets together to tell a story of how they relate to one another. 
+
+Remember, our goal here was to see how things like income and racial demographics are associated with covid-19 cases and/or deaths.
+
+```{r statistical_analysis, echo=FALSE}
+
+# Basic scatter plot of median income and cases (adjusted)
+ggplot(michigan_counties, aes(y = cases_adj, x = median_income)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  xlab("Median income by county") + 
+  ylab("Cases (per 100,000 people)") + 
+  ggtitle("Covid-19 cases (per 100,000 people) by median income by county") +
+  theme_bw()
+
+
+## Let's make a model of standardized covid cases and some of median_income
+fit_case_med_income <- lm(cases_adj~median_income, data=michigan_counties)
+summary(fit_case_med_income)
+
+## Now you do it for deaths. What do you see?
+
+
+## Now let's try for black population. First, let's get it into a percentage for
+michigan_counties <- michigan_counties %>%
+  dplyr::mutate(black_percent = log(black_pop/pop))
+
+# Basic scatter plot of median income and cases (adjusted)
+ggplot(michigan_counties, aes(y = cases_adj, x = black_percent)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  xlab("Black population (percent) by county") + 
+  ylab("Cases (per 100,000 people)") + 
+  ggtitle("Covid-19 cases (per 100,000 people) by black population (percent) by county") +
+  theme_bw()
+
+## Let's make a model of standardized covid cases and some of median_income
+fit_case_black <- lm(cases_adj~black_percent, data=michigan_counties)
+summary(fit_case_black)
+
+## Now do it for deaths. What do you see?
+
+
+## Now let's try it for age.
+
+
+## Now let's try a multiple regression model and predict some values
+fit_multiple <- lm(cases_adj ~ black_percent + median_income + mean_age, data=michigan_counties )
+summary(fit_multiple)
+
+michigan_counties$predictions <- predict(fit_multiple)
+michigan_counties$residuals  <- fit_multiple$residuals
+
+## And make a prediction map
+prediction_map <- tm_shape(michigan_counties) +
+  tm_polygons("predictions", title = "Predicted cases from regression model", style = "quantile") +
+  tm_layout(main.title = "Predicted cases from regression model")
+
+## library(tmaptools)
+## library(shinyjs)
+## palette_explorer() 
+
+## And make a prediction map
+residual_map <- tm_shape(michigan_counties) +
+  tm_polygons("residuals", title = "Model residuals", style = "quantile", palette=get_brewer_pal(palette="Spectral", n=5, plot=FALSE)) +
+  tm_layout(main.title = "Model residuals")
+
+## Now do these for deaths.
+
+```
