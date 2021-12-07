@@ -256,7 +256,7 @@ cases <- tm_shape(michigan_counties) +
   tm_layout(main.title = "Covid-19 cases")
 
 deaths <- tm_shape(michigan_counties) +
-  tm_polygons("deaths", title = "Mortality counts", style = "quantile") +
+  tm_polygons("deaths", title = "Mortality counts ", style = "quantile") +
   tm_layout(main.title = "Covid-19 mortality")
 
 cases_adj <- tm_shape(michigan_counties) +
