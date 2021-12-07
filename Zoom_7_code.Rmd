@@ -360,7 +360,11 @@ summary(fit_case_black)
 ## Now let's try a multiple regression model and predict some values
 fit_multiple <- lm(cases_adj ~ black_percent + median_income + mean_age, data=michigan_counties )
 summary(fit_multiple)
+par(mfrow=c(2,2))
+plot(fit_multiple)
+par(mfrow=c(1,1))
 
+## Add our predictions and residuals to our data set
 michigan_counties$predictions <- predict(fit_multiple)
 michigan_counties$residuals  <- fit_multiple$residuals
 
@@ -378,6 +382,6 @@ residual_map <- tm_shape(michigan_counties) +
   tm_polygons("residuals", title = "Model residuals", style = "quantile", palette=get_brewer_pal(palette="Spectral", n=5, plot=FALSE)) +
   tm_layout(main.title = "Model residuals")
 
-## Now do these for deaths.
+## Now do the same thing for deaths.
 
 ```
