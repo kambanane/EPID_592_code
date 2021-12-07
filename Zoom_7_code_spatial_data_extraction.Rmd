@@ -117,7 +117,7 @@ summary(ETH_malaria_data)
 
 ## Models 
 
-Our goal here is to test for associations between presence of malaria and population, elevation and distance to river. 
+Our goal is to test for associations between presence of malaria and population, elevation and distance to river. 
 
 We can do that using a regression model as before. Plus, we'll make some cool plots.
 
