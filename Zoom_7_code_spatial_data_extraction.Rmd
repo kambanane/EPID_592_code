@@ -1,0 +1,192 @@
+---
+title: "Zoom_7_code_exercise"
+author: "Peter S. Larson"
+date: "2021/12/7"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Spatial data extraction
+
+In the last exercise, we merged data based on common identifiers. The data all came from the same geometries (counties.)
+
+But what if we have data where there aren't common identifiers? 
+
+In this case, we perform our merges based on spatial locations. To show how this is done, we will use a data set of malaria tests, where the location of the home is known. 
+
+```{r data_read_in}
+# Load in the malaria case data
+ETH_malaria_data <- read.csv("https://raw.githubusercontent.com/HughSt/HughSt.github.io/master/course_materials/week1/Lab_files/Data/mal_data_eth_2009_no_dups.csv", header=T) %>% # Case data
+  dplyr::mutate(parasite_presence = ifelse(pf_pos > 0, "Positive", "Negative")) ## Create a binary outcome.
+
+## Set coordinates 
+coordinates(ETH_malaria_data) <- ~longitude+latitude
+
+## convert to sf object
+ETH_malaria_data <- st_as_sf(ETH_malaria_data)
+
+## Get pops
+pops <- read_csv("GIS_data/Ethiopia/eht_pops.csv")
+
+## Get some admin boundaries and population at the same time. 
+ETH_Adm_2 <- st_as_sf(raster::shapefile("GIS_data/Ethiopia/Ethiopia_adm2_uscb_2020.shp")) %>% # get admin boundaries and make it an sf object at the same time
+  left_join(pops %>% dplyr::select(GEO_MATCH, BTOTL_2000)) %>% #join the population data to this using GEO_MATCH as a common identifier
+  dplyr::rename(pops = BTOTL_2000) ## rename BTOTL_2000 to pops, just ot make it easier for us to use
+
+## Set these so they are the same crs, really not necessary to make a map, but necessary for the data extraction step.
+st_crs(ETH_malaria_data) <- st_crs(ETH_Adm_2)
+
+## Make a map to show we aren't crazy
+tm_shape(ETH_Adm_2) +
+  tm_polygons("pops", title = "Population", palette= get_brewer_pal(palette="Greys", n=5, plot=FALSE), alpha=.5) +
+  tm_shape(ETH_malaria_data) +
+  tm_symbols(
+    "parasite_presence",
+    size = .25,
+    border.col = "black",
+    border.lwd = 1,
+    palette = c("white", "red"),
+    title.size = "Parasite presence"
+  ) +
+  tm_layout(main.title = "Malaria data set")
+
+```
+
+## Covariates
+
+Remember, we want to try and test for associations between spatial risk factors and disease. 
+
+To do this, we have to get some data from other GIS layers.
+
+We've already got data for population from the polygon data. Let's also get a line file for rivers and an elevation raster.
+
+```{r get_other_layers}
+
+## Elevation raster
+elev <- raster::raster("GIS_data/Ethiopia/Elevation/ETH_msk_alt.gri")
+
+## Rivers 
+rivers <- raster::shapefile("GIS_data/Ethiopia/Rivers/ETH_water_lines_dcw.shp")
+rivers <- st_as_sf(rivers)
+
+## Let's plot them so we can convince ourselves that we have the correct data
+tm_shape(elev) +
+  tm_raster(
+    title = "Elevation",
+    palette = get_brewer_pal(palette = "Greys", n = 5, plot = FALSE),
+    legend.hist = TRUE
+  ) +
+  tm_shape(rivers, alpha = .5) +
+  tm_lines("gray39") +
+  tm_layout(main.title = "Elevation and rivers in Ethiopia", legend.outside = TRUE)
+
+```
+
+## Data extraction
+
+Now let's do some data extraction 
+
+
+```{r data_extraction}
+
+## Population
+
+## Get population numbers for each point, actually get all of the data from the population/adm 2 data set. We can do this using st_intersection()
+ETH_malaria_data <- st_intersection(ETH_Adm_2, ETH_malaria_data)
+
+## Let's look at it to see if it worked.
+head(ETH_malaria_data)
+
+## Looks like it did. Now let's get the other variables.
+
+## Elevation 
+ETH_malaria_data$elevation <- raster::extract(elev, ETH_malaria_data)
+
+## Get distance to river
+distances <- st_distance(ETH_malaria_data, rivers) * 0.001
+ETH_malaria_data$distance_to_river <- (as.vector(apply(distances,1, min)))
+
+## Now let's look at a summary of the data
+summary(ETH_malaria_data)
+
+```
+
+
+## Models 
+
+Our goal here is to test for associations between presence of malaria and population, elevation and distance to river. 
+
+We can do that using a regression model as before. Plus, we'll make some cool plots.
+
+```{r models}
+
+## Our outcome is binary, which means we can't use a regular scatterplot. We'll get a little fancy. 
+
+## First we have to convert the parasite presence to a number 
+ETH_malaria_data <- ETH_malaria_data %>%
+  dplyr::mutate(parasite_01 = ifelse(parasite_presence=="Positive", 1, 0))
+
+ggplot(data=ETH_malaria_data, aes(x=pops, y=parasite_01)) +
+  geom_point()+
+  geom_smooth() +
+  ggtitle("Malaria and population") +
+  xlab("Population") +
+  ylab("Parasite presence")
+
+ggplot(data=ETH_malaria_data, aes(x=elevation, y=parasite_01)) +
+  geom_point()+
+  geom_smooth() +
+  ggtitle("Malaria and elevation") +
+  xlab("Elevation") +
+  ylab("Parasite presence")
+
+ggplot(data=ETH_malaria_data, aes(x=distance_to_river, y=parasite_01)) +
+  geom_point()+
+  geom_smooth() +
+  ggtitle("Malaria and distance to river") +
+  xlab("Distance to river") +
+  ylab("Parasite presence")
+
+### We'll also use compareGroups to get a nice table
+table_malaria <- compareGroups(parasite_presence ~ pops + elevation + distance_to_river, data=as.data.frame(ETH_malaria_data))
+table_malaria <- createTable(table_malaria, show.p.overall = FALSE, show.ratio = TRUE, show.all=TRUE)
+export2md(table_malaria)
+
+## Not very convincing, but we'll make a model anyway
+fit_malaria <-
+  glm(
+    parasite_01 ~  pops + elevation + distance_to_river ,
+    data = ETH_malaria_data,
+    family = "binomial"
+  )
+summary(fit_malaria)
+par(mfrow=c(2,2))
+plot(fit_malaria)
+par(mfrow=c(1,1))
+
+## Add back to our data set
+ETH_malaria_data$predictions <- exp(predict(fit_malaria))/(1+exp(predict(fit_malaria)))
+ETH_malaria_data$residuals <- fit_malaria$residuals - min(fit_malaria$residuals)
+
+## Make a couple of maps
+predictions <- tm_shape(ETH_Adm_2) +
+  tm_polygons(col = "white") +
+  tm_shape(ETH_malaria_data) +
+  tm_bubbles("predictions", style = "quantile", scale = .75) +
+  tm_layout(main.title = "Probability of malaria")
+
+residuals <- tm_shape(ETH_Adm_2) +
+  tm_polygons(col = "white") +
+  tm_shape(ETH_malaria_data) +
+  tm_bubbles("residuals") +
+  tm_layout(main.title = "Residuals")
+
+current.mode <- tmap_mode("plot")
+tmap_arrange(predictions, residuals, widths = c(.5, .5))
+tmap_mode(current.mode)
+
+
+```
