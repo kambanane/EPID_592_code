@@ -29,10 +29,10 @@ coordinates(ETH_malaria_data) <- ~longitude+latitude
 ETH_malaria_data <- st_as_sf(ETH_malaria_data)
 
 ## Get pops
-pops <- read_csv("GIS_data/Ethiopia/eht_pops.csv")
+pops <- read_csv("GIS_data/Ethiopia/admin/eth_pops.csv")
 
 ## Get some admin boundaries and population at the same time. 
-ETH_Adm_2 <- st_as_sf(raster::shapefile("GIS_data/Ethiopia/Ethiopia_adm2_uscb_2020.shp")) %>% # get admin boundaries and make it an sf object at the same time
+ETH_Adm_2 <- st_as_sf(raster::shapefile("GIS_data/Ethiopia/Admin/Ethiopia_adm2_uscb_2020.shp")) %>% # get admin boundaries and make it an sf object at the same time
   left_join(pops %>% dplyr::select(GEO_MATCH, BTOTL_2000)) %>% #join the population data to this using GEO_MATCH as a common identifier
   dplyr::rename(pops = BTOTL_2000) ## rename BTOTL_2000 to pops, just ot make it easier for us to use
 
@@ -169,7 +169,7 @@ par(mfrow=c(1,1))
 
 ## Add back to our data set
 ETH_malaria_data$predictions <- exp(predict(fit_malaria))/(1+exp(predict(fit_malaria)))
-ETH_malaria_data$residuals <- fit_malaria$residuals - min(fit_malaria$residuals)
+ETH_malaria_data$residuals <- fit_malaria$residuals - min(fit_malaria$residuals) ## Hack to get the plot to work. I will fix and upload a corrected version of the script.
 
 ## Make a couple of maps
 predictions <- tm_shape(ETH_Adm_2) +
