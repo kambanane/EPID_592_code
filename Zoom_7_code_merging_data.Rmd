@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 GIS is more than just making pretty pictures. It also allows us a powerful means of putting different datasets together for performing complex analyses of associations between variables within space. 
 
-In this exercise, we will be exploring how median income and race are associated with high blood pressure using an ecological analysis. 
+In this exercise, we will be exploring how median income and race are associated with covid using an ecological analysis. 
 
 ```{r read_in_data}
 
@@ -253,7 +253,8 @@ library(tmap)
 ## Let's make a map of covid cases and deaths 
 cases <- tm_shape(michigan_counties) +
   tm_polygons("cases", title = "Case counts", style = "quantile") +
-  tm_layout(main.title = "Covid-19 cases")
+  tm_layout(main.title = "Covid-19 cases") + 
+  tm_credits("Data from Michigan Department of Health and Human Services", position=c("right", "top"))
 
 deaths <- tm_shape(michigan_counties) +
   tm_polygons("deaths", title = "Mortality counts ", style = "quantile") +
@@ -311,7 +312,7 @@ Also, I have used "quantile" breaks here for convenience. You might find that ot
 
 ## Analyzing the data 
 
-Now that you have a data set, you can do some statistical analysese. Remember, GIS isn't just about making maps. It is also about bringing different data sets together to tell a story of how they relate to one another. 
+Now that you have a data set, you can do some statistical analyses. Remember, GIS isn't just about making maps. It is also about bringing different data sets together to tell a story of how they relate to one another. 
 
 Remember, our goal here was to see how things like income and racial demographics are associated with covid-19 cases and/or deaths.
 
@@ -326,13 +327,11 @@ ggplot(michigan_counties, aes(y = cases_adj, x = median_income)) +
   ggtitle("Covid-19 cases (per 100,000 people) by median income by county") +
   theme_bw()
 
-
 ## Let's make a model of standardized covid cases and some of median_income
 fit_case_med_income <- lm(cases_adj~median_income, data=michigan_counties)
 summary(fit_case_med_income)
 
 ## Now you do it for deaths. What do you see?
-
 
 ## Now let's try for black population. First, let's get it into a percentage for
 michigan_counties <- michigan_counties %>%
@@ -373,13 +372,13 @@ prediction_map <- tm_shape(michigan_counties) +
   tm_polygons("predictions", title = "Predicted cases from regression model", style = "quantile") +
   tm_layout(main.title = "Predicted cases from regression model")
 
-## library(tmaptools)
-## library(shinyjs)
-## palette_explorer() 
+#library(tmaptools)
+#library(shinyjs)
+#palette_explorer() 
 
 ## And make a prediction map
 residual_map <- tm_shape(michigan_counties) +
-  tm_polygons("residuals", title = "Model residuals", style = "quantile", palette=get_brewer_pal(palette="Spectral", n=5, plot=FALSE)) +
+  tm_polygons("residuals", title = "Model residuals", style = "quantile", palette=get_brewer_pal(palette="-Spectral", n=5, plot=FALSE,)) +
   tm_layout(main.title = "Model residuals")
 
 ## Now do the same thing for deaths.

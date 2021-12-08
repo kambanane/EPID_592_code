@@ -51,7 +51,8 @@ tm_shape(ETH_Adm_2) +
     palette = c("white", "red"),
     title.size = "Parasite presence"
   ) +
-  tm_layout(main.title = "Malaria data set")
+  tm_layout(main.title = "Malaria data set") +
+  tm_credits("World Bank, etc")
 
 ```
 
@@ -95,6 +96,7 @@ Now let's do some data extraction
 ## Population
 
 ## Get population numbers for each point, actually get all of the data from the population/adm 2 data set. We can do this using st_intersection()
+## Polygon to points
 ETH_malaria_data <- st_intersection(ETH_Adm_2, ETH_malaria_data)
 
 ## Let's look at it to see if it worked.
