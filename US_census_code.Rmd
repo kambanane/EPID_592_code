@@ -105,7 +105,7 @@ mi_mean_age <-
   dplyr::rename(mean_age = estimate) %>%
   dplyr::select(GEOID, mean_age)
 
-## g et variable from Census in year 2020.We have to use the data choice pl because it is the only one that is avaiable for 2020.
+## get variable from Census in year 2020.We have to use the data choice pl because it is the only one that is avaiable for 2020.
 m20 <- load_variables(2020, "pl", cache = TRUE)
 
 ## find appropriate variable from above (black or african american race)
@@ -144,19 +144,19 @@ mi_income <- get_acs(
 )
 
 ## It's an sf object so we can use dplyr code.
-mi_income <- mi_income %>%
+mi_income <-  mi_income %>%
   dplyr::rename(median_income = estimate) %>%
-  dplyr::mutate(median_income = replace_na(median_income, 0))
+  dplyr::mutate(median_income = replace_na(median_income, 0)) %>%
+  sf::st_make_valid()
 
 #We can now make a map
 tm_shape(mi_income) +
-  tm_polygons("median_income",
-              title = "Median Income ($)", lwd = 0.01, border.alpha = 0.1) +
+  tm_polygons("median_income",title = "Median Income", lwd = 0.01, border.alpha = 0.1) +
   tm_legend(title = "Median Income", title.position = c("right", "top")) +
-  tm_layout (bg.color = "skyblue")
+  tm_layout (bg.color = "white")
 
 
-tm_shape(mi_income) +
+tm_shape(sf::st_make_valid(mi_income)) +
   tm_polygons(
     "median_income",
     title = "Median Income ($)",
@@ -172,9 +172,6 @@ tm_shape(mi_income) +
     alpha = .2
   ) 
 
-
-
-
 ```
 
 Let's make a poverty map
@@ -187,10 +184,12 @@ mi_poverty2 <- get_acs(
   variables = "B10059_002",
   state = "MI",
   geometry = TRUE
-)
+) %>%
+  sf::st_make_valid()
+
 mi_poverty2 <- mi_poverty2 %>%
   dplyr::rename(poverty = estimate) %>%
-  dplyr::mutate(poverty = replace_na(poverty, 0))
+  dplyr::mutate(poverty = replace_na(poverty, 0)) 
 #Map
 tm_shape(mi_poverty2) + tm_polygons(
   "poverty",
@@ -214,10 +213,13 @@ mi_mean_age2 <- get_acs(
   variables = "B01002_001",
   state = "MI",
   geometry = TRUE
-)
+) %>%
+  sf::st_make_valid()
+
 mi_mean_age2 <- mi_mean_age2 %>%
   dplyr::rename(age = estimate) %>%
   dplyr::mutate(age = replace_na(age, 0))
+
 tm_shape(mi_mean_age2) + tm_polygons(
   "age",
   title = "Mean Age (years)",
@@ -231,13 +233,16 @@ tm_shape(mi_mean_age2) + tm_polygons(
 ```{r black_aa_map}
 
 ## black/african american
-mi_black2<- get_decennial(geography = "tract",
-                          variables = "P1_004N",
-                          state = "MI",
-                          geometry = TRUE)
-mi_black2 <- mi_black2 %>%
-  dplyr::rename(black = estimate)%>% 
-  dplyr::mutate(black = replace_na(black, 0))
-tm_shape(mi_black2) + tm_polygons("black", title = "Black/African American Population (%)", palette = "PuBuGn", lwd = 0.2) + tm_legend(title ="Black/African American Population", title.position = c("right", "top"))
+# mi_black2<- get_decennial(geography = "tract",
+#                           variables = "P1_004N",
+#                           state = "MI",
+#                           geometry = TRUE) %>%
+#   sf::st_make_valid()
+# 
+# mi_black2 <- mi_black2 %>%
+#   dplyr::rename(black = estimate)%>% 
+#   dplyr::mutate(black = replace_na(black, 0))
+# 
+# tm_shape(mi_black2) + tm_polygons("black", title = "Black/African American Population (%)", palette = "PuBuGn", lwd = 0.2) + tm_legend(title ="Black/African American Population", title.position = c("right", "top"))
 
 ```
