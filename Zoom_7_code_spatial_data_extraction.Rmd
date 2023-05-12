@@ -18,6 +18,19 @@ But what if we have data where there aren't common identifiers?
 In this case, we perform our merges based on spatial locations. To show how this is done, we will use a data set of malaria tests, where the location of the home is known. 
 
 ```{r data_read_in}
+
+### Get the libraries we need
+library(sf)
+library(sp)
+library(maptools)
+library(tmap)
+library(rgeos)
+library(haven)
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(tmaptools)
+
 # Load in the malaria case data
 ETH_malaria_data <- read.csv("https://raw.githubusercontent.com/HughSt/HughSt.github.io/master/course_materials/week1/Lab_files/Data/mal_data_eth_2009_no_dups.csv", header=T) %>% # Case data
   dplyr::mutate(parasite_presence = ifelse(pf_pos > 0, "Positive", "Negative")) ## Create a binary outcome.
@@ -28,12 +41,12 @@ coordinates(ETH_malaria_data) <- ~longitude+latitude
 ## convert to sf object
 ETH_malaria_data <- st_as_sf(ETH_malaria_data)
 
-## Get pops
+## Get populationss
 pops <- read_csv("GIS_data/Ethiopia/admin/eth_pops.csv")
 
 ## Get some admin boundaries and population at the same time. 
 ETH_Adm_2 <- st_as_sf(raster::shapefile("GIS_data/Ethiopia/Admin/Ethiopia_adm2_uscb_2020.shp")) %>% # get admin boundaries and make it an sf object at the same time
-  left_join(pops %>% dplyr::select(GEO_MATCH, BTOTL_2000)) %>% #join the population data to this using GEO_MATCH as a common identifier
+  dplyr::left_join(pops %>% dplyr::select(GEO_MATCH, BTOTL_2000)) %>% #join the population data to this using GEO_MATCH as a common identifier
   dplyr::rename(pops = BTOTL_2000) ## rename BTOTL_2000 to pops, just ot make it easier for us to use
 
 ## Set these so they are the same crs, really not necessary to make a map, but necessary for the data extraction step.
